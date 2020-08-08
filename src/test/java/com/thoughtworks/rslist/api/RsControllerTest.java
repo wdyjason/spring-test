@@ -177,7 +177,7 @@ class RsControllerTest {
             save.getId(), LocalDateTime.now().toString());
     mockMvc
         .perform(
-            post("/rs/vote/{id}", rsEventDto.getId())
+            post("/rs/{id}/vote", rsEventDto.getId())
                 .content(jsonValue)
                 .contentType(APPLICATION_JSON))
         .andExpect(status().isOk());
@@ -234,7 +234,7 @@ class RsControllerTest {
 
     String tradePostStr = "{\"amount\":100, \"rank\":1}";
     mockMvc
-            .perform(post("/rs/buy/" + buyId).content(tradePostStr).contentType(APPLICATION_JSON))
+            .perform(post("/rs/{id}/buy", buyId).content(tradePostStr).contentType(APPLICATION_JSON))
             .andExpect(status().isOk());
 
     mockMvc
@@ -269,7 +269,7 @@ class RsControllerTest {
 
     String tradePostStr = "{\"amount\":100, \"rank\":1}";
     mockMvc
-            .perform(post("/rs/buy/" + buyId).content(tradePostStr).contentType(APPLICATION_JSON))
+            .perform(post("/rs/{id}/buy", buyId).content(tradePostStr).contentType(APPLICATION_JSON))
             .andExpect(status().isBadRequest());
   }
 
@@ -297,7 +297,7 @@ class RsControllerTest {
 
     String tradePostStr = "{\"amount\":100, \"rank\":2}";
     mockMvc
-            .perform(post("/rs/buy/" + buyId).content(tradePostStr).contentType(APPLICATION_JSON))
+            .perform(post("/rs/{id}/buy", buyId).content(tradePostStr).contentType(APPLICATION_JSON))
             .andExpect(status().isOk());
 
     mockMvc

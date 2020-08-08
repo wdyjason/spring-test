@@ -79,13 +79,13 @@ public class RsController {
     return ResponseEntity.created(null).build();
   }
 
-  @PostMapping("/rs/vote/{id}")
+  @PostMapping("/rs/{id}/vote")
   public ResponseEntity vote(@PathVariable int id, @RequestBody Vote vote) {
     rsService.vote(vote, id);
     return ResponseEntity.ok().build();
   }
 
-  @PostMapping("/rs/buy/{id}")
+  @PostMapping("/rs/{id}/buy")
   public ResponseEntity buy(@PathVariable int id, @RequestBody Trade trade){
     rsService.buy(trade, id);
     return ResponseEntity.ok().build();
