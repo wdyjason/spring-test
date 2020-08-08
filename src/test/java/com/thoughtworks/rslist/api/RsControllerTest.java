@@ -1,9 +1,11 @@
 package com.thoughtworks.rslist.api;
 
 import com.thoughtworks.rslist.dto.RsEventDto;
+import com.thoughtworks.rslist.dto.TradeDto;
 import com.thoughtworks.rslist.dto.UserDto;
 import com.thoughtworks.rslist.dto.VoteDto;
 import com.thoughtworks.rslist.repository.RsEventRepository;
+import com.thoughtworks.rslist.repository.TradeRepository;
 import com.thoughtworks.rslist.repository.UserRepository;
 import com.thoughtworks.rslist.repository.VoteRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +39,7 @@ class RsControllerTest {
   @Autowired UserRepository userRepository;
   @Autowired RsEventRepository rsEventRepository;
   @Autowired VoteRepository voteRepository;
+  @Autowired TradeRepository tradeRepository;
   private UserDto userDto;
 
   @BeforeEach
@@ -246,5 +249,67 @@ class RsControllerTest {
             .andExpect(jsonPath("$[3].eventName", is("第三条事件")))
             .andExpect(jsonPath("$[3].keyword", is("无分类")));
 
+  }
+
+  @Test
+  public void shouldBuyAnEventFailWhenMoneyIsNotEnough() throws Exception {
+    UserDto save = userRepository.save(userDto);
+    RsEventDto rsEventDto =
+            RsEventDto.builder().keyword("无分类").eventName("第一条事件").voteNum(4).user(save).rank(1).build();
+
+    int buyId = rsEventRepository.save(rsEventDto).getId();
+
+    TradeDto tradeHistory = TradeDto.builder()
+            .amount(150)
+            .rank(1)
+            .id(1)
+            .rsEventId(buyId)
+            .build();
+    tradeRepository.save(tradeHistory);
+
+    String tradePostStr = "{\"amount\":100, \"rank\":1}";
+    mockMvc
+            .perform(post("/rs/buy/" + buyId).content(tradePostStr).contentType(APPLICATION_JSON))
+            .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  public void shouldBuyAnEventSuccessWhenItHasBought() throws Exception {
+    UserDto save = userRepository.save(userDto);
+    RsEventDto rsEventDto =
+            RsEventDto.builder().keyword("无分类").eventName("第一条事件").voteNum(4).user(save).rank(0).build();
+
+    rsEventRepository.save(rsEventDto);
+    rsEventDto = RsEventDto.builder().keyword("无分类").eventName("第二条事件").voteNum(3).user(save).rank(0).build();
+    rsEventRepository.save(rsEventDto);
+    rsEventDto = RsEventDto.builder().keyword("无分类").eventName("第三条事件").voteNum(2).user(save).rank(0).build();
+    rsEventRepository.save(rsEventDto);
+    rsEventDto = RsEventDto.builder().keyword("无分类").eventName("第四条事件").voteNum(1).user(save).rank(1).build();
+    int buyId = rsEventRepository.save(rsEventDto).getId();
+
+    TradeDto tradeHistory = TradeDto.builder()
+            .amount(50)
+            .rank(1)
+            .id(1)
+            .rsEventId(buyId)
+            .build();
+    tradeRepository.save(tradeHistory);
+
+    String tradePostStr = "{\"amount\":100, \"rank\":2}";
+    mockMvc
+            .perform(post("/rs/buy/" + buyId).content(tradePostStr).contentType(APPLICATION_JSON))
+            .andExpect(status().isOk());
+
+    mockMvc
+            .perform(get("/rs/list"))
+            .andExpect(jsonPath("$", hasSize(4)))
+            .andExpect(jsonPath("$[0].eventName", is("第一条事件")))
+            .andExpect(jsonPath("$[0].keyword", is("无分类")))
+            .andExpect(jsonPath("$[1].eventName", is("第四条事件")))
+            .andExpect(jsonPath("$[1].keyword", is("无分类")))
+            .andExpect(jsonPath("$[2].eventName", is("第二条事件")))
+            .andExpect(jsonPath("$[2].keyword", is("无分类")))
+            .andExpect(jsonPath("$[3].eventName", is("第三条事件")))
+            .andExpect(jsonPath("$[3].keyword", is("无分类")));
   }
 }
