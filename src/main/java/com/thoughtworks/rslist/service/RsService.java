@@ -84,13 +84,19 @@ public class RsService {
 
   public HttpStatus buy(Trade trade, int id) {
     Optional<RsEventDto> rsEventDtoWarped = rsEventRepository.findById(id);
-    if (rsEventDtoWarped.isPresent() && rsEventDtoWarped.get().getRank() < 1) {
+    List<TradeDto> tradeDtoList =tradeRepository.findByRsEventIdOrderByAmountDesc(id);
+
+    if (rsEventDtoWarped.isPresent() && tradeDtoList.size() > 0) {
+
+      if (trade.getAmount() > tradeDtoList.get(0).getAmount() || rsEventDtoWarped.get().getRank() < 1)  {
         rsEventRepository.updateRank(trade.getRank(), id);
         tradeRepository.save(TradeDto.builder()
                 .rank(trade.getRank())
                 .amount(trade.getAmount())
                 .RsEventId(id).build());
         return HttpStatus.OK;
+      }
+
     }
     return HttpStatus.BAD_REQUEST;
   }
