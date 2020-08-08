@@ -4,6 +4,7 @@ import com.thoughtworks.rslist.domain.RsEvent;
 import com.thoughtworks.rslist.domain.Trade;
 import com.thoughtworks.rslist.domain.Vote;
 import com.thoughtworks.rslist.dto.RsEventDto;
+import com.thoughtworks.rslist.dto.TradeDto;
 import com.thoughtworks.rslist.dto.UserDto;
 import com.thoughtworks.rslist.dto.VoteDto;
 import com.thoughtworks.rslist.repository.RsEventRepository;
@@ -11,6 +12,7 @@ import com.thoughtworks.rslist.repository.TradeRepository;
 import com.thoughtworks.rslist.repository.UserRepository;
 import com.thoughtworks.rslist.repository.VoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -80,7 +82,16 @@ public class RsService {
             .collect(Collectors.toList());
   }
 
-  public void buy(Trade trade, int id) {
-
+  public HttpStatus buy(Trade trade, int id) {
+    Optional<RsEventDto> rsEventDtoWarped = rsEventRepository.findById(id);
+    if (rsEventDtoWarped.isPresent() && rsEventDtoWarped.get().getRank() < 1) {
+        rsEventRepository.updateRank(trade.getRank(), id);
+        tradeRepository.save(TradeDto.builder()
+                .rank(trade.getRank())
+                .amount(trade.getAmount())
+                .RsEventId(id).build());
+        return HttpStatus.OK;
+    }
+    return HttpStatus.BAD_REQUEST;
   }
 }

@@ -3,6 +3,7 @@ package com.thoughtworks.rslist.service;
 import com.thoughtworks.rslist.domain.Trade;
 import com.thoughtworks.rslist.domain.Vote;
 import com.thoughtworks.rslist.dto.RsEventDto;
+import com.thoughtworks.rslist.dto.TradeDto;
 import com.thoughtworks.rslist.dto.UserDto;
 import com.thoughtworks.rslist.dto.VoteDto;
 import com.thoughtworks.rslist.repository.RsEventRepository;
@@ -93,15 +94,29 @@ class RsServiceTest {
         });
   }
 
-//  @Test
-//  void shouldBuyAnEventSuccessWhenItIsFree() {
-//    Trade trade = Trade.builder()
-//            .rank(anyInt())
-//            .amount(anyInt())
-//            .build();
-//    when(tradeRepository.findById(anyInt())).thenReturn(Optional.empty());
-//
-//
-//    rsService.buy(trade, anyInt());
-//  }
+  @Test
+  void shouldBuyAnEventSuccessWhenItIsFree() {
+    Trade trade = Trade.builder()
+            .rank(1)
+            .amount(100)
+            .build();
+    RsEventDto rsEventDto = RsEventDto.builder()
+            .eventName("event")
+            .id(3)
+            .rank(0)
+            .voteNum(0)
+            .keyword("key")
+            .build();
+    TradeDto toSaved = TradeDto.builder()
+            .amount(100)
+            .rank(1)
+            .RsEventId(3)
+            .build();
+
+    when(rsEventRepository.findById(3)).thenReturn(Optional.of(rsEventDto));
+    rsService.buy(trade, 3);
+
+    verify(rsEventRepository).updateRank(1, 3);
+    verify(tradeRepository).save(toSaved);
+  }
 }
