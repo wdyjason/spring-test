@@ -6,12 +6,15 @@ import com.thoughtworks.rslist.dto.RsEventDto;
 import com.thoughtworks.rslist.dto.TradeDto;
 import com.thoughtworks.rslist.dto.UserDto;
 import com.thoughtworks.rslist.dto.VoteDto;
+import com.thoughtworks.rslist.exception.RequestNotValidException;
 import com.thoughtworks.rslist.repository.RsEventRepository;
 import com.thoughtworks.rslist.repository.TradeRepository;
 import com.thoughtworks.rslist.repository.UserRepository;
 import com.thoughtworks.rslist.repository.VoteRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.mockito.Mock;
 import org.springframework.http.HttpStatus;
 
@@ -22,10 +25,10 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+//@TestMethodOrder(value = )
 class RsServiceTest {
   RsService rsService;
 
@@ -114,16 +117,17 @@ class RsServiceTest {
             .id(1)
             .amount(50)
             .rank(2)
-            .RsEventId(3)
+            .rsEventId(3)
             .build();
     TradeDto toSaved = TradeDto.builder()
             .amount(100)
             .rank(1)
-            .RsEventId(3)
+            .rsEventId(3)
             .build();
 
     when(rsEventRepository.findById(3)).thenReturn(Optional.of(rsEventDto));
     when(tradeRepository.findByRsEventIdOrderByAmountDesc(3)).thenReturn(Arrays.asList(toFound));
+    when(rsEventRepository.findByRank(1)).thenReturn(Optional.empty());
     rsService.buy(trade, 3);
 
     verify(rsEventRepository).updateRank(1, 3);
@@ -143,27 +147,36 @@ class RsServiceTest {
             .voteNum(0)
             .keyword("key")
             .build();
+    RsEventDto sameRankEvent = RsEventDto.builder()
+            .eventName("event")
+            .id(2)
+            .rank(1)
+            .voteNum(0)
+            .keyword("sameRank")
+            .build();
     TradeDto toFound = TradeDto.builder()
             .id(1)
             .amount(50)
             .rank(2)
-            .RsEventId(3)
+            .rsEventId(3)
             .build();
     TradeDto toSaved = TradeDto.builder()
             .amount(100)
             .rank(1)
-            .RsEventId(3)
+            .rsEventId(3)
             .build();
 
     when(rsEventRepository.findById(3)).thenReturn(Optional.of(rsEventDto));
+    when(rsEventRepository.findByRank(1)).thenReturn(Optional.of(sameRankEvent));
     when(tradeRepository.findByRsEventIdOrderByAmountDesc(3)).thenReturn(Arrays.asList(toFound));
     rsService.buy(trade, 3);
 
-    verify(rsEventRepository).updateRank(1, 3);
+    verify(rsEventRepository, times(2)).updateRank(anyInt(), anyInt());
     verify(tradeRepository).save(toSaved);
   }
 
   @Test
+//  @Order(1)
   void shouldBuyAnEventFailWhenItIsPayNotEnough() {
     Trade trade = Trade.builder()
             .rank(1)
@@ -180,18 +193,18 @@ class RsServiceTest {
             .id(1)
             .amount(200)
             .rank(2)
-            .RsEventId(3)
+            .rsEventId(3)
             .build();
     TradeDto toSaved = TradeDto.builder()
             .amount(100)
             .rank(1)
-            .RsEventId(3)
+            .rsEventId(3)
             .build();
 
     when(rsEventRepository.findById(3)).thenReturn(Optional.of(rsEventDto));
+    when(rsEventRepository.findByRank(1)).thenReturn(Optional.empty());
     when(tradeRepository.findByRsEventIdOrderByAmountDesc(3)).thenReturn(Arrays.asList(toFound));
-    HttpStatus result = rsService.buy(trade, 3);
 
-    assertEquals(HttpStatus.BAD_REQUEST, result);
+    assertThrows(RequestNotValidException.class, () ->  rsService.buy(trade, 3));
   }
 }

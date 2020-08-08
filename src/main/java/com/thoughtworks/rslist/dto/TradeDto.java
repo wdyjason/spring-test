@@ -26,5 +26,5 @@ public class TradeDto {
 
     private Integer rank;
 
-    private Integer RsEventId;
+    private Integer rsEventId;
 }

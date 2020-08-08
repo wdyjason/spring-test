@@ -7,6 +7,7 @@ import com.thoughtworks.rslist.dto.RsEventDto;
 import com.thoughtworks.rslist.dto.TradeDto;
 import com.thoughtworks.rslist.dto.UserDto;
 import com.thoughtworks.rslist.dto.VoteDto;
+import com.thoughtworks.rslist.exception.RequestNotValidException;
 import com.thoughtworks.rslist.repository.RsEventRepository;
 import com.thoughtworks.rslist.repository.TradeRepository;
 import com.thoughtworks.rslist.repository.UserRepository;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -82,22 +84,29 @@ public class RsService {
             .collect(Collectors.toList());
   }
 
-  public HttpStatus buy(Trade trade, int id) {
+  @Transactional
+  public void buy(Trade trade, int id) {
     Optional<RsEventDto> rsEventDtoWarped = rsEventRepository.findById(id);
     List<TradeDto> tradeDtoList =tradeRepository.findByRsEventIdOrderByAmountDesc(id);
 
-    if (rsEventDtoWarped.isPresent() && tradeDtoList.size() > 0) {
-
-      if (trade.getAmount() > tradeDtoList.get(0).getAmount() || rsEventDtoWarped.get().getRank() < 1)  {
-        rsEventRepository.updateRank(trade.getRank(), id);
-        tradeRepository.save(TradeDto.builder()
-                .rank(trade.getRank())
-                .amount(trade.getAmount())
-                .RsEventId(id).build());
-        return HttpStatus.OK;
-      }
-
+    if (!rsEventDtoWarped.isPresent()) {
+      throw new RequestNotValidException("request EventId not exist");
     }
-    return HttpStatus.BAD_REQUEST;
+
+    if (tradeDtoList.size() > 0
+            && trade.getAmount() <= tradeDtoList.get(0).getAmount()
+            && rsEventDtoWarped.get().getRank() > 0) {
+      throw new RequestNotValidException("money is not enough");
+    }
+
+    Optional<RsEventDto> sameRankWarp = rsEventRepository.findByRank(trade.getRank());
+    sameRankWarp.ifPresent(rsEventDto -> rsEventRepository.updateRank(0, rsEventDto.getId()));
+
+    rsEventRepository.updateRank(trade.getRank(), id);
+    tradeRepository.save(TradeDto.builder()
+            .rank(trade.getRank())
+            .amount(trade.getAmount())
+            .rsEventId(id).build());
+
   }
 }
