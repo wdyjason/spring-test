@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -23,6 +24,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -140,7 +142,7 @@ class RsControllerTest {
         "{\"eventName\":\"猪肉涨价了\",\"keyword\":\"经济\",\"userId\": " + save.getId() + "}";
 
     mockMvc
-        .perform(post("/rs/event").content(jsonValue).contentType(MediaType.APPLICATION_JSON))
+        .perform(post("/rs/event").content(jsonValue).contentType(APPLICATION_JSON))
         .andExpect(status().isCreated());
     List<RsEventDto> all = rsEventRepository.findAll();
     assertNotNull(all);
@@ -155,7 +157,7 @@ class RsControllerTest {
   public void shouldAddRsEventWhenUserNotExist() throws Exception {
     String jsonValue = "{\"eventName\":\"猪肉涨价了\",\"keyword\":\"经济\",\"userId\": 100}";
     mockMvc
-        .perform(post("/rs/event").content(jsonValue).contentType(MediaType.APPLICATION_JSON))
+        .perform(post("/rs/event").content(jsonValue).contentType(APPLICATION_JSON))
         .andExpect(status().isBadRequest());
   }
 
@@ -174,7 +176,7 @@ class RsControllerTest {
         .perform(
             post("/rs/vote/{id}", rsEventDto.getId())
                 .content(jsonValue)
-                .contentType(MediaType.APPLICATION_JSON))
+                .contentType(APPLICATION_JSON))
         .andExpect(status().isOk());
 
     UserDto userDto = userRepository.findById(save.getId()).get();
@@ -211,5 +213,38 @@ class RsControllerTest {
             .andExpect(jsonPath("$[2].keyword", is("无分类")))
             .andExpect(jsonPath("$[3].eventName", is("第四条事件")))
             .andExpect(jsonPath("$[3].keyword", is("无分类")));
+  }
+
+  @Test
+  public void shouldBuyAnEventSuccessWhenItIsFree() throws Exception {
+    UserDto save = userRepository.save(userDto);
+    RsEventDto rsEventDto =
+            RsEventDto.builder().keyword("无分类").eventName("第一条事件").voteNum(4).user(save).rank(0).build();
+
+    rsEventRepository.save(rsEventDto);
+    rsEventDto = RsEventDto.builder().keyword("无分类").eventName("第二条事件").voteNum(3).user(save).rank(0).build();
+    rsEventRepository.save(rsEventDto);
+    rsEventDto = RsEventDto.builder().keyword("无分类").eventName("第三条事件").voteNum(2).user(save).rank(0).build();
+    rsEventRepository.save(rsEventDto);
+    rsEventDto = RsEventDto.builder().keyword("无分类").eventName("第四条事件").voteNum(1).user(save).rank(0).build();
+    int buyId = rsEventRepository.save(rsEventDto).getId();
+
+    String tradePostStr = "{\"amount\":100, \"rank\":1}";
+    mockMvc
+            .perform(post("/rs/buy/" + buyId).content(tradePostStr).contentType(APPLICATION_JSON))
+            .andExpect(status().isOk());
+
+    mockMvc
+            .perform(get("/rs/list"))
+            .andExpect(jsonPath("$", hasSize(4)))
+            .andExpect(jsonPath("$[0].eventName", is("第四条事件")))
+            .andExpect(jsonPath("$[0].keyword", is("无分类")))
+            .andExpect(jsonPath("$[1].eventName", is("第一条事件")))
+            .andExpect(jsonPath("$[1].keyword", is("无分类")))
+            .andExpect(jsonPath("$[2].eventName", is("第二条事件")))
+            .andExpect(jsonPath("$[2].keyword", is("无分类")))
+            .andExpect(jsonPath("$[3].eventName", is("第三条事件")))
+            .andExpect(jsonPath("$[3].keyword", is("无分类")));
+
   }
 }
