@@ -1,28 +1,36 @@
 package com.thoughtworks.rslist.service;
 
+import com.thoughtworks.rslist.domain.RsEvent;
 import com.thoughtworks.rslist.domain.Trade;
 import com.thoughtworks.rslist.domain.Vote;
 import com.thoughtworks.rslist.dto.RsEventDto;
 import com.thoughtworks.rslist.dto.UserDto;
 import com.thoughtworks.rslist.dto.VoteDto;
 import com.thoughtworks.rslist.repository.RsEventRepository;
+import com.thoughtworks.rslist.repository.TradeRepository;
 import com.thoughtworks.rslist.repository.UserRepository;
 import com.thoughtworks.rslist.repository.VoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class RsService {
   final RsEventRepository rsEventRepository;
   final UserRepository userRepository;
   final VoteRepository voteRepository;
+  final TradeRepository tradeRepository;
 
-  public RsService(RsEventRepository rsEventRepository, UserRepository userRepository, VoteRepository voteRepository) {
+  public RsService(RsEventRepository rsEventRepository, UserRepository userRepository,
+                   VoteRepository voteRepository, TradeRepository tradeRepository) {
     this.rsEventRepository = rsEventRepository;
     this.userRepository = userRepository;
     this.voteRepository = voteRepository;
+    this.tradeRepository = tradeRepository;
   }
 
   public void vote(Vote vote, int rsEventId) {
@@ -47,6 +55,29 @@ public class RsService {
     RsEventDto rsEvent = rsEventDto.get();
     rsEvent.setVoteNum(rsEvent.getVoteNum() + vote.getVoteNum());
     rsEventRepository.save(rsEvent);
+  }
+
+  public List<RsEvent> getEventListInOrder() {
+    List<RsEventDto> dtoList = rsEventRepository.findAllByOrderByVoteNumDesc();
+    List<RsEventDto> rankedList = dtoList
+            .stream()
+            .filter(f -> f.getRank() > 0)
+            .sorted(Comparator.comparing(RsEventDto::getRank))
+            .collect(Collectors.toList());
+
+    dtoList.removeAll(rankedList);
+    for (RsEventDto e : rankedList) {
+        dtoList.add(e.getRank() - 1, e);
+    }
+
+    return dtoList.stream().map(item ->
+            RsEvent.builder()
+                    .eventName(item.getEventName())
+                    .keyword(item.getKeyword())
+                    .userId(item.getId())
+                    .voteNum(item.getVoteNum())
+                    .build())
+            .collect(Collectors.toList());
   }
 
   public void buy(Trade trade, int id) {

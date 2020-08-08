@@ -11,4 +11,6 @@ public interface RsEventRepository extends CrudRepository<RsEventDto, Integer> {
 
   @Transactional
   void deleteAllByUserId(int userId);
+
+  List<RsEventDto> findAllByOrderByVoteNumDesc();
 }

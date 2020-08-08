@@ -23,4 +23,6 @@ public class RsEventDto {
   private String keyword;
   private int voteNum;
   @ManyToOne private UserDto user;
+  @Builder.Default
+  private int rank = 0;
 }

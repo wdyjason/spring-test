@@ -1,10 +1,12 @@
 package com.thoughtworks.rslist.service;
 
+import com.thoughtworks.rslist.domain.Trade;
 import com.thoughtworks.rslist.domain.Vote;
 import com.thoughtworks.rslist.dto.RsEventDto;
 import com.thoughtworks.rslist.dto.UserDto;
 import com.thoughtworks.rslist.dto.VoteDto;
 import com.thoughtworks.rslist.repository.RsEventRepository;
+import com.thoughtworks.rslist.repository.TradeRepository;
 import com.thoughtworks.rslist.repository.UserRepository;
 import com.thoughtworks.rslist.repository.VoteRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,13 +28,14 @@ class RsServiceTest {
   @Mock RsEventRepository rsEventRepository;
   @Mock UserRepository userRepository;
   @Mock VoteRepository voteRepository;
+  @Mock TradeRepository tradeRepository;
   LocalDateTime localDateTime;
   Vote vote;
 
   @BeforeEach
   void setUp() {
     initMocks(this);
-    rsService = new RsService(rsEventRepository, userRepository, voteRepository);
+    rsService = new RsService(rsEventRepository, userRepository, voteRepository, tradeRepository);
     localDateTime = LocalDateTime.now();
     vote = Vote.builder().voteNum(2).rsEventId(1).time(localDateTime).userId(1).build();
   }
@@ -89,4 +92,16 @@ class RsServiceTest {
           rsService.vote(vote, 1);
         });
   }
+
+//  @Test
+//  void shouldBuyAnEventSuccessWhenItIsFree() {
+//    Trade trade = Trade.builder()
+//            .rank(anyInt())
+//            .amount(anyInt())
+//            .build();
+//    when(tradeRepository.findById(anyInt())).thenReturn(Optional.empty());
+//
+//
+//    rsService.buy(trade, anyInt());
+//  }
 }
